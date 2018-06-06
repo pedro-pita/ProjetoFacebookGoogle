@@ -102,9 +102,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         userStatus = (TextView) findViewById(R.id.user_status);
         loginBtn = (LoginButton) findViewById(R.id.fb_login_button);
 
-        if(isLoggedIn()){
+        if(isLoggedIn())
             userStatus.setText("Ativo");
-        }else
+        else
             userStatus.setText("Inativo");
 
         loginBtn.setReadPermissions(Arrays.asList("public_profile", "email","user_friends"));
@@ -140,8 +140,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 parameters.putString("fields", "id,first_name,last_name");
                 request.setParameters(parameters);
                 request.executeAsync();
-                Toast.makeText(getApplicationContext(),"Login...",Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(),"Logged in",Toast.LENGTH_SHORT).show();
                 userStatus.setText("Ativo");
+                findViewById(R.id.sign_in_button).setVisibility(View.GONE);
+                //TODO Esconder o botao de login da google guando logado no face
             }
 
             @Override
@@ -158,7 +160,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
         if(!accessTokenTracker.isTracking()){
             userName.setText("");
-            //TODO Quando terminar sessão mudar para "Inativo" e apagar o nome
         }
 
     }
@@ -259,10 +260,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             //View.GONE - (Não é exibido e não ocupa o espaço em tela)
             findViewById(R.id.sign_in_button).setVisibility(View.GONE);
+            findViewById(R.id.fb_login_button).setVisibility(View.GONE);
             findViewById(R.id.sign_out_and_disconnect).setVisibility(View.VISIBLE);
         } else {
-
             findViewById(R.id.sign_in_button).setVisibility(View.VISIBLE);
+            findViewById(R.id.fb_login_button).setVisibility(View.VISIBLE);
             findViewById(R.id.sign_out_and_disconnect).setVisibility(View.GONE);
         }
     }
@@ -300,6 +302,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     //User logged out
                     LoginManager.getInstance().logOut();
                 }
+                findViewById(R.id.sign_in_button).setVisibility(View.VISIBLE);
+                userName.setText("");
+                userStatus.setText("Inativo");
             }
         };
     }
@@ -347,4 +352,5 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         accessTokenTracker.stopTracking();
         deleteAccessToken();
     }
+
 }
