@@ -1,6 +1,7 @@
 package com.programmers_dep.sgg.contagoogleface;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
@@ -103,6 +104,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         loginBtn = (LoginButton) findViewById(R.id.fb_login_button);
 
         if(isLoggedIn())
+        if(isLoggedIn()){
+            SharedPreferences login = getSharedPreferences("login_data", 0);
+            String userName1 = login.getString("username", "");
+            String userLastName1 = login.getString("userlastname", "");
+
+            userName.setText(userName1 + " " + userLastName1);
             userStatus.setText("Ativo");
         else
             userStatus.setText("Inativo");
@@ -256,7 +263,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void updateUI(@Nullable GoogleSignInAccount account) {
         if (account != null) {
-            userName.setText(account.getDisplayName());
+            SharedPreferences account_google = getSharedPreferences("login_data_google", 0);
+            SharedPreferences.Editor editor = account_google.edit();
+            editor.putString("username", account.getDisplayName());
+            editor.commit();
+
+            userName.setText(account_google.getString("username", ""));
 
             //View.GONE - (Não é exibido e não ocupa o espaço em tela)
             findViewById(R.id.sign_in_button).setVisibility(View.GONE);
@@ -323,11 +335,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 e.printStackTrace();
                 return null;
             }
+            SharedPreferences account = getSharedPreferences("login_data", 0);
+            SharedPreferences.Editor editor = account.edit();
             bundle.putString("idFacebook", id);
-            if (object.has("first_name"))
+            if(object.has("first_name")) {
                 bundle.putString("first_name", object.getString("first_name"));
-            if (object.has("last_name"))
+                editor.putString("username", object.getString("first_name"));
+            }
+            if(object.has("last_name")) {
                 bundle.putString("last_name", object.getString("last_name"));
+                editor.putString("userlastname", object.getString("first_name"));
+            }
+            editor.commit();
         } catch (Exception e) {
             Log.d(TAG_FACE, "BUNDLE Exception : "+e.toString());
         }
