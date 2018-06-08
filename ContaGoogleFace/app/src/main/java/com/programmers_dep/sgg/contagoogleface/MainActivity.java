@@ -99,7 +99,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         // [START customize_button]
         // Set the dimensions of the sign-in button.
         signInButton = findViewById(R.id.sign_in_button);
-        signInButton.setSize(SignInButton.SIZE_STANDARD);
+        signInButton.setSize(SignInButton.SIZE_ICON_ONLY);
         signInButton.setColorScheme(SignInButton.COLOR_LIGHT);
         // [END customize_button]
 
