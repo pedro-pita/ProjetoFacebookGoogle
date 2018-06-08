@@ -65,6 +65,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final List<String> PERMISSIONS = Arrays.asList("publish_actions");
 
     private static String message = "Testando o SDK do Facebook para Android!";
+	
+	SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
+	Editor editor = pref.edit();
 
     //TODO Ao fechar e  reabrir a aplicação enquanto está loggado no face ele não põe os dados na tela
 
@@ -108,11 +111,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         loginBtn = (LoginButton) findViewById(R.id.fb_login_button);
 
         if(Logged=isLoggedIn()) {
-            SharedPreferences login = getSharedPreferences("login_data", 0);
-            String userName1 = login.getString("username","");
-            String userLastName1 = login.getString("userlastname", "");
-
-            userName.setText(userName1 + " " + userLastName1);
+			Toast.makeText(this, pref.getString("username", "Error") + " " + pref.getString("userlastname", null), Toast.LENGTH_SHORT).show();
+            userName.setText(pref.getString("username", null) + " " + pref.getString("userlastname", ""));
             userStatus.setText("Ativo");
 
             Log.d(TAG_FACE,"Already logged in");
@@ -193,7 +193,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         // Check for existing Google Sign In account, if the user is already signed in
         // the GoogleSignInAccount will be non-null.
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
-        updateUI(account);
+        updateUI("");
         // [END on_start_sign_in]
     }
 
@@ -222,8 +222,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         try {
             GoogleSignInAccount account = completedTask.getResult(ApiException.class);
 
+			editor.putString("username", account.getDisplayName());
+			editor.putBoolean("isLoggedIn", true);
+			editor.commit();
             // Signed in successfully, show authenticated UI.
-            updateUI(account);
+            updateUI("");
         } catch (ApiException e) {
             // The ApiException status code indicates the detailed failure reason.
             // Please refer to the GoogleSignInStatusCodes class reference for
@@ -273,14 +276,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
     // [END revokeAccess]
 
-    private void updateUI(@Nullable GoogleSignInAccount account) {
-        if (account != null) {
-            SharedPreferences account_google = getSharedPreferences("login_data_google", 0);
-            SharedPreferences.Editor editor = account_google.edit();
-            editor.putString("username", account.getDisplayName());
-            editor.commit();
-
-            userName.setText(account_google.getString("username", ""));
+    private void updateUI(String value) {
+        if (value != null) {
+			Toast.makeText(this,pref.getString("username", "Error"),Toast.LENGTH_SHORT).show();
+            userName.setText(pref.getString("username", "Error"));
             userStatus.setText("Ativo");
 
             //View.GONE - (Não é exibido e não ocupa o espaço em tela)
@@ -293,6 +292,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             findViewById(R.id.sign_out_and_disconnect).setVisibility(View.GONE);
             userName.setText("");
             userStatus.setText("Inativo");
+			editor.clear();
+			editor.commit();
         }
     }
 
@@ -351,8 +352,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 e.printStackTrace();
                 return null;
             }
-            SharedPreferences account = getSharedPreferences("login_data", 0);
-            SharedPreferences.Editor editor = account.edit();
+			
             bundle.putString("idFacebook", id);
             if(object.has("first_name")) {
                 bundle.putString("first_name", object.getString("first_name"));
@@ -362,6 +362,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 bundle.putString("last_name", object.getString("last_name"));
                 editor.putString("userlastname", object.getString("last_name"));
             }
+			editor.putBoolean("isLoggedIn", true);
             editor.commit();
         } catch (Exception e) {
             Log.d(TAG_FACE, "BUNDLE Exception : "+e.toString());
