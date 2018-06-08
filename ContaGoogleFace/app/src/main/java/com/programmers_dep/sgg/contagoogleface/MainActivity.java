@@ -45,13 +45,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final String TAG_GOOGLE = "SignInActivity";
     private static final int RC_SIGN_IN = 9001;
 
+    SignInButton signInButton;
+
     private GoogleSignInClient mGoogleSignInClient;
-    private TextView mStatusTextView;
 
     //FACEBOOK
     private final String TAG_FACE = "FACEBOOK";
 
     private LoginButton loginBtn;
+
+    private boolean Logged=false;
 
     private TextView userName, userStatus;
     CallbackManager callbackManager;
@@ -63,6 +66,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private static String message = "Testando o SDK do Facebook para Android!";
 
+    //TODO Ao fechar e  reabrir a aplicação enquanto está loggado no face ele não põe os dados na tela
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -70,7 +75,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
 
         // Views
-        mStatusTextView = findViewById(R.id.user_status);
+        userStatus = findViewById(R.id.user_status);
 
         // Button listeners
         findViewById(R.id.sign_in_button).setOnClickListener(this);
@@ -93,25 +98,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         // [START customize_button]
         // Set the dimensions of the sign-in button.
-        SignInButton signInButton = findViewById(R.id.sign_in_button);
+        signInButton = findViewById(R.id.sign_in_button);
         signInButton.setSize(SignInButton.SIZE_STANDARD);
         signInButton.setColorScheme(SignInButton.COLOR_LIGHT);
         // [END customize_button]
 
         //FACEBOOK
         userName = (TextView) findViewById(R.id.username);
-        userStatus = (TextView) findViewById(R.id.user_status);
         loginBtn = (LoginButton) findViewById(R.id.fb_login_button);
 
-        if(isLoggedIn())
-        if(isLoggedIn()){
+        if(Logged=isLoggedIn()) {
             SharedPreferences login = getSharedPreferences("login_data", 0);
-            String userName1 = login.getString("username", "");
+            String userName1 = login.getString("username","");
             String userLastName1 = login.getString("userlastname", "");
 
             userName.setText(userName1 + " " + userLastName1);
             userStatus.setText("Ativo");
-        else
+
+            Log.d(TAG_FACE,"Already logged in");
+            Log.d(TAG_FACE,"user "+userName1+" "+userLastName1);
+            Log.d(TAG_FACE,userName.getText().toString());
+            Log.d(TAG_FACE,userStatus.getText().toString());
+        }else
             userStatus.setText("Inativo");
 
         loginBtn.setReadPermissions(Arrays.asList("public_profile", "email","user_friends"));
@@ -126,7 +134,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         loginBtn.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
             @Override
             public void onSuccess(LoginResult loginResult) {
-                userName.setText("Login sucess"+loginResult.getAccessToken().getUserId());
+                Log.d(TAG_FACE,"Login sucess"+loginResult.getAccessToken().getUserId());
                 Toast.makeText(getApplicationContext(), "Logging in...", Toast.LENGTH_SHORT).show();
                 String accessToken = loginResult.getAccessToken().getToken();
 
@@ -136,11 +144,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             @Override
                             public void onCompleted(JSONObject jsonObject,
                                                     GraphResponse response) {
-
                                 // Getting FB User Data
                                 Bundle facebookData = getFacebookData(jsonObject);
-
-                                userName.setText(facebookData.getString("first_name"));
+                                String faceName = facebookData.getString("first_name")+" "+facebookData.getString("last_name");
+                                if(faceName!=userName.getText().toString())
+                                    userName.setText(faceName);
                             }
                         });
                 Bundle parameters = new Bundle();
@@ -149,13 +157,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 request.executeAsync();
                 Toast.makeText(getApplicationContext(),"Logged in",Toast.LENGTH_SHORT).show();
                 userStatus.setText("Ativo");
-                findViewById(R.id.sign_in_button).setVisibility(View.GONE);
-                //TODO Esconder o botao de login da google guando logado no face
+                signInButton.setVisibility(View.GONE);
             }
 
             @Override
             public void onCancel() {
                 userStatus.setText("Login cancel");
+                Log.d(TAG_FACE, "Login canceled.");
+                findViewById(R.id.sign_in_button).setVisibility(View.VISIBLE);
+                userName.setText("");
             }
 
             @Override
@@ -163,6 +173,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 exception.printStackTrace();
                 Log.d(TAG_FACE, "Login attempt failed.");
                 deleteAccessToken();
+                signInButton.setVisibility(View.VISIBLE);
+                userName.setText("");
+                userStatus.setText("Inativo");
             }
         });
         if(!accessTokenTracker.isTracking()){
@@ -216,6 +229,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             // Please refer to the GoogleSignInStatusCodes class reference for
             // more information.
             Log.w(TAG_GOOGLE, "signInResult:failed code=" + e.getStatusCode());
+            if (e.getStatusCode()==7)
+                Toast.makeText(this,"Login Error: Check Network Connection",Toast.LENGTH_SHORT).show();
             updateUI(null);
         }
     }
@@ -226,6 +241,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Intent signInIntent = mGoogleSignInClient.getSignInIntent();
         startActivityForResult(signInIntent, RC_SIGN_IN);
         userStatus.setText("Activo");
+        loginBtn.setVisibility(View.GONE);
     }
     // [END signIn]
 
@@ -240,8 +256,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         // [END_EXCLUDE]
                     }
                 });
-        userName.setText("");
-        userStatus.setText("Inativo");
     }
     // [END signOut]
 
@@ -256,8 +270,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         // [END_EXCLUDE]
                     }
                 });
-        userName.setText("");
-        userStatus.setText("Inativo");
     }
     // [END revokeAccess]
 
@@ -269,6 +281,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             editor.commit();
 
             userName.setText(account_google.getString("username", ""));
+            userStatus.setText("Ativo");
 
             //View.GONE - (Não é exibido e não ocupa o espaço em tela)
             findViewById(R.id.sign_in_button).setVisibility(View.GONE);
@@ -278,6 +291,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             findViewById(R.id.sign_in_button).setVisibility(View.VISIBLE);
             findViewById(R.id.fb_login_button).setVisibility(View.VISIBLE);
             findViewById(R.id.sign_out_and_disconnect).setVisibility(View.GONE);
+            userName.setText("");
+            userStatus.setText("Inativo");
         }
     }
 
@@ -313,10 +328,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (currentAccessToken == null){
                     //User logged out
                     LoginManager.getInstance().logOut();
+                    findViewById(R.id.sign_in_button).setVisibility(View.VISIBLE);
+                    userName.setText("");
+                    userStatus.setText("Inativo");
                 }
-                findViewById(R.id.sign_in_button).setVisibility(View.VISIBLE);
-                userName.setText("");
-                userStatus.setText("Inativo");
             }
         };
     }
@@ -330,6 +345,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 profile_pic = new URL("https://graph.facebook.com/" + id
                         + "/picture?type=large");
                 Log.i("profile_pic", profile_pic + "");
+                //TODO set profile picture
                 bundle.putString("profile_pic", profile_pic.toString());
             } catch (MalformedURLException e) {
                 e.printStackTrace();
@@ -344,7 +360,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             if(object.has("last_name")) {
                 bundle.putString("last_name", object.getString("last_name"));
-                editor.putString("userlastname", object.getString("first_name"));
+                editor.putString("userlastname", object.getString("last_name"));
             }
             editor.commit();
         } catch (Exception e) {
