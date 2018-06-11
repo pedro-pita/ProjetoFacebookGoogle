@@ -131,10 +131,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         };
 
-        loginBtn.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
+       loginBtn.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
             @Override
             public void onSuccess(LoginResult loginResult) {
-                Log.d(TAG_FACE,"Login sucess"+loginResult.getAccessToken().getUserId());
+
+                Log.d(TAG_FACE, "Login sucess" + loginResult.getAccessToken().getUserId());
                 Toast.makeText(getApplicationContext(), "Logging in...", Toast.LENGTH_SHORT).show();
                 String accessToken = loginResult.getAccessToken().getToken();
 
@@ -146,16 +147,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                                     GraphResponse response) {
                                 // Getting FB User Data
                                 Bundle facebookData = getFacebookData(jsonObject);
-                                String faceName = facebookData.getString("first_name")+" "+facebookData.getString("last_name");
-                                if(faceName!=userName.getText().toString())
+                                String faceName = pref.getString("username", "") + pref.getString("userlastname", "");
+                                if (faceName != userName.getText().toString()) {
                                     userName.setText(faceName);
+                                    try {
+
+                                        JSONArray jsonArrayFriends = jsonObject.getJSONObject("friendlist").getJSONArray("data");
+                                        JSONObject friendlistObject = jsonArrayFriends.getJSONObject(0);
+                                        String friendListID = friendlistObject.getString("id");
+                                        myNewGraphReq(friendListID);
+                                    } catch (JSONException e) {
+                                        Log.e(TAG, "ERRO PORRA()", e);
+                                        e.printStackTrace();
+                                    }
+                                }
                             }
                         });
                 Bundle parameters = new Bundle();
                 parameters.putString("fields", "id,first_name,last_name");
                 request.setParameters(parameters);
                 request.executeAsync();
-                Toast.makeText(getApplicationContext(),"Logged in",Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Logged in", Toast.LENGTH_SHORT).show();
                 userStatus.setText("Ativo");
                 signInButton.setVisibility(View.GONE);
             }
@@ -388,5 +400,51 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         accessTokenTracker.stopTracking();
         deleteAccessToken();
     }
+	
+	private void myNewGraphReq(String friendlistId){
+        final String graphPath="/"+friendlistId+"/members/";
+        AccessToken token=AccessToken.getCurrentAccessToken();
+        GraphRequest request=new GraphRequest(token,graphPath,null, HttpMethod.GET,new GraphRequest.Callback(){
+            @Override
+            public void onCompleted(GraphResponse graphResponse){
+                JSONObject object=graphResponse.getJSONObject();
+                try{
+                    //In V2.0, Facebook removed the option to retrieve friend data. The only exception is from friends who are using the same app.
+                    /*Reading from this edge will return a JSON formatted result:
+                        {
+                            "data": [], //A list of User nodes.
+                            "paging": {},
+                            "summary": {} //Aggregated information about the edge, such as counts. Specify the fields to fetch in the summary param (like summary=total_count).
+                        }
+                    */
+                    JSONArray arrayOfUsersInFriendList=object.getJSONArray("data");
+                    List<String> users = new ArrayList<String>();
+                    // ex: get first user in list, "name"
+                    if(arrayOfUsersInFriendList.length() > 0){
+                        for(int i=0; i< arrayOfUsersInFriendList.length();i++){
+                            JSONObject user= arrayOfUsersInFriendList.getJSONObject(i);
+                            users.add(user.getString("name").toString());
+                        }
+                        listarUsers(users);
+                    }
 
+                }catch(JSONException e){
+                    e.printStackTrace();
+                }
+            }
+        });
+        Bundle param=new Bundle();
+        param.putString("fields","name");
+        request.setParameters(param);
+        request.executeAsync();
+    }
+	
+    private void listarUsers(List<String> users){
+        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(
+                this,
+                android.R.layout.simple_list_item_1,
+                users );
+
+        detail.setAdapter(arrayAdapter);
+    }
 }
