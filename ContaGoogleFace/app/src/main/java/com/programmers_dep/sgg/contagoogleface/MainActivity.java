@@ -134,6 +134,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
        loginBtn.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
             @Override
             public void onSuccess(LoginResult loginResult) {
+
                 Log.d(TAG_FACE, "Login sucess" + loginResult.getAccessToken().getUserId());
                 Toast.makeText(getApplicationContext(), "Logging in...", Toast.LENGTH_SHORT).show();
                 String accessToken = loginResult.getAccessToken().getToken();
@@ -446,5 +447,4 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         detail.setAdapter(arrayAdapter);
     }
-
 }
